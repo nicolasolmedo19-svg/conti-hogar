@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Conti Hogar — Marketplace</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a;}
+input,select,button,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px;}
+a{text-decoration:none;}
+.admin-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:4px 6px;border-radius:4px;transition:background .15s;}
+.admin-btn:hover{background:rgba(0,0,0,.1);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useMemo,useEffect,useCallback}=React;
+
+const WA="5493435188348";
+const ADMIN_PIN="conti170522";
+const LS_PRODUCTS="ch_products_v3";
+const LS_SALES="ch_sales_v2";
+
+const CATS=[
+  {id:"todos",    label:"Todos",              icon:"🏪"},
+  {id:"liquidos", label:"Líquidos Limpieza",  icon:"🧴"},
+  {id:"articulos",label:"Artículos Limpieza", icon:"🧹"},
+  {id:"bazar",    label:"Bazar",              icon:"🏠"},
+  {id:"jugueteria",label:"Juguetería",        icon:"🧸"},
+  {id:"aromaticos",label:"Aromáticos",        icon:"🌸"},
+  {id:"electronicos",label:"Electrónicos",    icon:"🔌"},
+  {id:"otros",    label:"Otros",              icon:"📦"},
+];
+
+const PAGOS=[
+  {id:"efectivo",      label:"Efectivo",      icon:"💵",recargo:0},
+  {id:"transferencia", label:"Transferencia", icon:"📲",recargo:0},
+  {id:"debito",        label:"Débito",        icon:"💳",recargo:0},
+  {id:"credito",       label:"Crédito",       icon:"💳",sub:"+15%",recargo:15},
+];
+
+const OWNERS=[
+  {id:"nico",       label:"NICO",       color:"#3b82f6",bg:"#eff6ff"},
+  {id:"jeni",       label:"JENI",       color:"#ec4899",bg:"#fdf2f8"},
+  {id:"compartido", label:"COMPARTIDO", color:"#8b5cf6",bg:"#f5f3ff"},
+];
+
+const PRODUCTS_DEFAULT=[
+  /* ── LÍQUIDOS ── */
+  {id:1, code:"200",name:"Jabón Ariel",                          cat:"liquidos",tipo:"litro", stock:20,costo:14300,precios:[{qty:"1 litro",price:18000},{qty:"5 litros",price:80000},{qty:"10 litros",price:150000}],oferta:false,precioOferta:"",emoji:"🧺",imageUrl:"",owner:"compartido"},
+  {id:2, code:"201",name:"Jabón Skip / Future",                  cat:"liquidos",tipo:"litro", stock:20,costo:20300,precios:[{qty:"1 litro",price:26000},{qty:"5 litros",price:120000}],oferta:false,precioOferta:"",emoji:"🧺",imageUrl:"",owner:"compartido"},
+  {id:3, code:"202",name:"Jabón Líquido Ala con Suavizante",     cat:"liquidos",tipo:"litro", stock:20,costo:16800,precios:[{qty:"1 litro",price:22000},{qty:"5 litros",price:100000}],oferta:false,precioOferta:"",emoji:"🫧",imageUrl:"",owner:"compartido"},
+  {id:4, code:"204",name:"Jabón Líquido para Ropa Eco",          cat:"liquidos",tipo:"litro", stock:15,costo:11650,precios:[{qty:"1 litro",price:16000},{qty:"5 litros",price:72000}],oferta:false,precioOferta:"",emoji:"🌿",imageUrl:"",owner:"compartido"},
+  {id:5, code:"206",name:"Suavizante Premium / Celeste / Blanco",cat:"liquidos",tipo:"litro", stock:20,costo:16400,precios:[{qty:"1 litro",price:21000},{qty:"5 litros",price:95000}],oferta:true, precioOferta:18000,emoji:"💜",imageUrl:"",owner:"compartido"},
+  {id:6, code:"207",name:"Suavizante para Ropa Brisa",           cat:"liquidos",tipo:"litro", stock:18,costo:12100,precios:[{qty:"1 litro",price:16500},{qty:"5 litros",price:72000}],oferta:false,precioOferta:"",emoji:"🌊",imageUrl:"",owner:"compartido"},
+  {id:7, code:"209",name:"Quita Mancha Ropa Color x5L",          cat:"liquidos",tipo:"litro", stock:10,costo:7600, precios:[{qty:"1 litro",price:12000},{qty:"5 litros",price:50000}],oferta:false,precioOferta:"",emoji:"✨",imageUrl:"",owner:"compartido"},
+  {id:8, code:"210",name:"Cloro 100% — 20 Litros",              cat:"liquidos",tipo:"litro", stock:8, costo:13300,precios:[{qty:"1 litro",price:2200},{qty:"5 litros",price:10000},{qty:"20 litros",price:35000}],oferta:false,precioOferta:"",emoji:"🪣",imageUrl:"",owner:"compartido"},
+  {id:9, code:"212",name:"Jabón Líquido para Manos 5 Lts",       cat:"liquidos",tipo:"litro", stock:20,costo:8000, precios:[{qty:"500ml",price:5000},{qty:"1 litro",price:9500},{qty:"5 litros",price:42000}],oferta:false,precioOferta:"",emoji:"🤲",imageUrl:"",owner:"compartido"},
+  {id:10,code:"213",name:"Jabón Líquido p/ Manos Vainilla 5 Lts",cat:"liquidos",tipo:"litro", stock:20,costo:8000, precios:[{qty:"500ml",price:5000},{qty:"1 litro",price:9500},{qty:"5 litros",price:42000}],oferta:false,precioOferta:"",emoji:"🤲",imageUrl:"",owner:"compartido"},
+  {id:11,code:"214",name:"Limpia Vidrio 5 Lts",                  cat:"liquidos",tipo:"litro", stock:14,costo:8700, precios:[{qty:"1 litro",price:12000},{qty:"5 litros",price:52000}],oferta:false,precioOferta:"",emoji:"🪟",imageUrl:"",owner:"compartido"},
+  {id:12,code:"215",name:"Detergente Magistral",                 cat:"liquidos",tipo:"litro", stock:15,costo:11400,precios:[{qty:"1 litro",price:15000},{qty:"5 litros",price:68000}],oferta:false,precioOferta:"",emoji:"🫧",imageUrl:"",owner:"compartido"},
+  {id:13,code:"216",name:"Lavavajilla Flúor Limón 5 Lts",        cat:"liquidos",tipo:"litro", stock:12,costo:6200, precios:[{qty:"1 litro",price:9000},{qty:"5 litros",price:38000}],oferta:false,precioOferta:"",emoji:"🍋",imageUrl:"",owner:"compartido"},
+  {id:14,code:"218",name:"Desodorante de Piso Concentrado 250ml",cat:"liquidos",tipo:"litro", stock:20,costo:6690, precios:[{qty:"250ml",price:9000},{qty:"1 litro",price:30000}],oferta:false,precioOferta:"",emoji:"🏠",imageUrl:"",owner:"compartido"},
+  {id:15,code:"219",name:"Quita Sarro 5 Lts p/ Diluir",         cat:"liquidos",tipo:"litro", stock:10,costo:9300, precios:[{qty:"1 litro",price:14000},{qty:"5 litros",price:60000}],oferta:false,precioOferta:"",emoji:"🚿",imageUrl:"",owner:"compartido"},
+  {id:16,code:"220",name:"Lavandina en Gel 5 Lts",              cat:"liquidos",tipo:"litro", stock:10,costo:8266, precios:[{qty:"1 litro",price:12000},{qty:"5 litros",price:52000}],oferta:true, precioOferta:45000,emoji:"🫧",imageUrl:"",owner:"compartido"},
+  {id:17,code:"221",name:"Sectisol Esencia 500ml",               cat:"liquidos",tipo:"litro", stock:18,costo:7000, precios:[{qty:"500ml",price:10500},{qty:"1 litro",price:19000}],oferta:false,precioOferta:"",emoji:"🌿",imageUrl:"",owner:"compartido"},
+  {id:18,code:"222",name:"Desengrasante Líquido Concentrado 1L", cat:"liquidos",tipo:"litro", stock:15,costo:8150, precios:[{qty:"1 litro",price:13000}],oferta:false,precioOferta:"",emoji:"💪",imageUrl:"",owner:"compartido"},
+  {id:19,code:"223",name:"Acondicionador de Piso 5 Litros",      cat:"liquidos",tipo:"litro", stock:12,costo:6760, precios:[{qty:"1 litro",price:10000},{qty:"5 litros",price:44000}],oferta:false,precioOferta:"",emoji:"✨",imageUrl:"",owner:"compartido"},
+  {id:20,code:"224",name:"Cera Roja de Piso 5 Litros",           cat:"liquidos",tipo:"litro", stock:8, costo:12300,precios:[{qty:"1 litro",price:18000},{qty:"5 litros",price:78000}],oferta:false,precioOferta:"",emoji:"🔴",imageUrl:"",owner:"compartido"},
+  {id:21,code:"225",name:"Cera Incolora de Piso 5 Litros",       cat:"liquidos",tipo:"litro", stock:8, costo:11650,precios:[{qty:"1 litro",price:17000},{qty:"5 litros",price:74000}],oferta:false,precioOferta:"",emoji:"⬜",imageUrl:"",owner:"compartido"},
+  {id:22,code:"226",name:"Lustra Mueble 1 Lt",                   cat:"liquidos",tipo:"litro", stock:15,costo:3698, precios:[{qty:"1 litro",price:7000}],oferta:false,precioOferta:"",emoji:"🪑",imageUrl:"",owner:"compartido"},
+  {id:23,code:"228",name:"Ácido",                                cat:"liquidos",tipo:"litro", stock:10,costo:11200,precios:[{qty:"1 litro",price:17000},{qty:"5 litros",price:75000}],oferta:false,precioOferta:"",emoji:"⚗️",imageUrl:"",owner:"compartido"},
+  {id:24,code:"232",name:"Agua Oxigenada",                       cat:"liquidos",tipo:"litro", stock:5, costo:25300,precios:[{qty:"500ml",price:18000},{qty:"1 litro",price:33000}],oferta:false,precioOferta:"",emoji:"💧",imageUrl:"",owner:"compartido"},
+  {id:25,code:"234",name:"Cif en Gel",                           cat:"liquidos",tipo:"litro", stock:15,costo:6750, precios:[{qty:"500ml",price:9500},{qty:"1 litro",price:17000}],oferta:false,precioOferta:"",emoji:"✨",imageUrl:"",owner:"compartido"},
+  {id:26,code:"236",name:"Vinagre de Limpieza",                  cat:"liquidos",tipo:"litro", stock:20,costo:7000, precios:[{qty:"1 litro",price:11000},{qty:"5 litros",price:48000}],oferta:false,precioOferta:"",emoji:"🍶",imageUrl:"",owner:"compartido"},
+  /* ── ARTÍCULOS LIMPIEZA ── */
+  {id:27,code:"1041",name:"Cepillo de Mano",                     cat:"articulos",tipo:"unidad",stock:25,costo:500,  precios:[{qty:"1 unidad",price:1000}],oferta:false,precioOferta:"",emoji:"🖌️",imageUrl:"",owner:"compartido"},
+  {id:28,code:"1049",name:"Plumero Fino",                        cat:"articulos",tipo:"unidad",stock:20,costo:1300, precios:[{qty:"1 unidad",price:2200}],oferta:false,precioOferta:"",emoji:"🪶",imageUrl:"",owner:"compartido"},
+  {id:29,code:"1050",name:"Pasa Cera",                           cat:"articulos",tipo:"unidad",stock:15,costo:1670, precios:[{qty:"1 unidad",price:2800}],oferta:false,precioOferta:"",emoji:"✨",imageUrl:"",owner:"compartido"},
+  {id:30,code:"1055",name:"Trapo de Piso Uruguayense 45x55",     cat:"articulos",tipo:"unidad",stock:30,costo:1314, precios:[{qty:"1 unidad",price:2200},{qty:"5 unidades",price:9500}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:31,code:"1056",name:"Trapo Gris Fibran",                   cat:"articulos",tipo:"unidad",stock:25,costo:800,  precios:[{qty:"1 unidad",price:1500}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:32,code:"1057",name:"Trapo de Piso 60x70",                 cat:"articulos",tipo:"unidad",stock:20,costo:1800, precios:[{qty:"1 unidad",price:3000},{qty:"5 unidades",price:13000}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:33,code:"1058",name:"Escobillón Económico",                cat:"articulos",tipo:"unidad",stock:12,costo:2800, precios:[{qty:"1 unidad",price:4500}],oferta:false,precioOferta:"",emoji:"🧹",imageUrl:"",owner:"compartido"},
+  {id:34,code:"1044",name:"Balde 10 Lts Negro",                  cat:"articulos",tipo:"unidad",stock:10,costo:2200, precios:[{qty:"1 unidad",price:3500}],oferta:false,precioOferta:"",emoji:"🪣",imageUrl:"",owner:"compartido"},
+  {id:35,code:"1071",name:"Balde 9 Lts Pastel",                  cat:"articulos",tipo:"unidad",stock:12,costo:1880, precios:[{qty:"1 unidad",price:3200}],oferta:false,precioOferta:"",emoji:"🪣",imageUrl:"",owner:"compartido"},
+  {id:36,code:"1063",name:"Esponja de Acero Romyl",              cat:"articulos",tipo:"unidad",stock:40,costo:500,  precios:[{qty:"1 unidad",price:900},{qty:"5 unidades",price:3800}],oferta:false,precioOferta:"",emoji:"🧽",imageUrl:"",owner:"compartido"},
+  {id:37,code:"1088",name:"Esponja de Cocina",                   cat:"articulos",tipo:"unidad",stock:50,costo:450,  precios:[{qty:"1 unidad",price:800},{qty:"5 unidades",price:3200}],oferta:false,precioOferta:"",emoji:"🧽",imageUrl:"",owner:"compartido"},
+  {id:38,code:"1075",name:"Guantes de Goma",                     cat:"articulos",tipo:"unidad",stock:25,costo:1268, precios:[{qty:"1 par",price:2200},{qty:"3 pares",price:6000}],oferta:false,precioOferta:"",emoji:"🧤",imageUrl:"",owner:"compartido"},
+  {id:39,code:"1092",name:"Cepillo de Ropa Planchita",           cat:"articulos",tipo:"unidad",stock:20,costo:875,  precios:[{qty:"1 unidad",price:1500}],oferta:false,precioOferta:"",emoji:"🖌️",imageUrl:"",owner:"compartido"},
+  {id:40,code:"1095",name:"Secador de Piso Goma Negra 30cm",     cat:"articulos",tipo:"unidad",stock:15,costo:1400, precios:[{qty:"1 unidad",price:2500}],oferta:false,precioOferta:"",emoji:"🧹",imageUrl:"",owner:"compartido"},
+  {id:41,code:"1116",name:"Escoba de Palma",                     cat:"articulos",tipo:"unidad",stock:10,costo:2600, precios:[{qty:"1 unidad",price:4500}],oferta:false,precioOferta:"",emoji:"🧹",imageUrl:"",owner:"compartido"},
+  {id:42,code:"1175",name:"Escobillón Curvo",                    cat:"articulos",tipo:"unidad",stock:12,costo:3200, precios:[{qty:"1 unidad",price:5500}],oferta:false,precioOferta:"",emoji:"🧹",imageUrl:"",owner:"compartido"},
+  {id:43,code:"1084",name:"Pulverizador 1 Lt",                   cat:"articulos",tipo:"unidad",stock:20,costo:1500, precios:[{qty:"1 unidad",price:2600}],oferta:false,precioOferta:"",emoji:"💦",imageUrl:"",owner:"compartido"},
+  {id:44,code:"1085",name:"Gatillos",                            cat:"articulos",tipo:"unidad",stock:30,costo:600,  precios:[{qty:"1 unidad",price:1200},{qty:"5 unidades",price:5000}],oferta:false,precioOferta:"",emoji:"🔫",imageUrl:"",owner:"compartido"},
+  {id:45,code:"1080",name:"Repuesto Moppa",                      cat:"articulos",tipo:"unidad",stock:15,costo:2000, precios:[{qty:"1 unidad",price:3500}],oferta:false,precioOferta:"",emoji:"🧹",imageUrl:"",owner:"compartido"},
+  {id:46,code:"1137",name:"Paño de Micro Fibra",                 cat:"articulos",tipo:"unidad",stock:20,costo:3300, precios:[{qty:"1 unidad",price:5500}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  /* ── BAZAR ── */
+  {id:47,code:"1024",name:"Fuetón 12 Lts",                       cat:"bazar",tipo:"unidad",stock:8, costo:3000, precios:[{qty:"1 unidad",price:5000}],oferta:false,precioOferta:"",emoji:"🪣",imageUrl:"",owner:"compartido"},
+  {id:48,code:"1073",name:"Paraguas Simple Negro Chico",          cat:"bazar",tipo:"unidad",stock:6, costo:5500, precios:[{qty:"1 unidad",price:9000}],oferta:false,precioOferta:"",emoji:"☂️",imageUrl:"",owner:"compartido"},
+  {id:49,code:"1074",name:"Paragua Infantil",                    cat:"bazar",tipo:"unidad",stock:8, costo:5500, precios:[{qty:"1 unidad",price:9000}],oferta:false,precioOferta:"",emoji:"☂️",imageUrl:"",owner:"compartido"},
+  {id:50,code:"1098",name:"Alfombra",                            cat:"bazar",tipo:"unidad",stock:8, costo:2500, precios:[{qty:"1 unidad",price:4200}],oferta:false,precioOferta:"",emoji:"🏠",imageUrl:"",owner:"compartido"},
+  {id:51,code:"1126",name:"Alfombra de Baño Bath",               cat:"bazar",tipo:"unidad",stock:10,costo:3500, precios:[{qty:"1 unidad",price:6000}],oferta:false,precioOferta:"",emoji:"🛁",imageUrl:"",owner:"compartido"},
+  {id:52,code:"1167",name:"Set Hermético x5",                    cat:"bazar",tipo:"unidad",stock:10,costo:3700, precios:[{qty:"1 set",price:6500}],oferta:true, precioOferta:5500,emoji:"📦",imageUrl:"",owner:"compartido"},
+  {id:53,code:"1168",name:"Set Hermético x3 Chico",              cat:"bazar",tipo:"unidad",stock:12,costo:2300, precios:[{qty:"1 set",price:4000}],oferta:false,precioOferta:"",emoji:"📦",imageUrl:"",owner:"compartido"},
+  {id:54,code:"1169",name:"Set Hermético x3 Grande",             cat:"bazar",tipo:"unidad",stock:8, costo:4800, precios:[{qty:"1 set",price:8000}],oferta:false,precioOferta:"",emoji:"📦",imageUrl:"",owner:"compartido"},
+  {id:55,code:"1183",name:"Canasto con Ruedas",                  cat:"bazar",tipo:"unidad",stock:5, costo:15300,precios:[{qty:"1 unidad",price:25000}],oferta:false,precioOferta:"",emoji:"🧺",imageUrl:"",owner:"compartido"},
+  {id:56,code:"1148",name:"Cesto Vaivén 10 Lts",                 cat:"bazar",tipo:"unidad",stock:8, costo:5800, precios:[{qty:"1 unidad",price:9500}],oferta:false,precioOferta:"",emoji:"🗑️",imageUrl:"",owner:"compartido"},
+  {id:57,code:"1143",name:"Cesto para Ropa Red",                 cat:"bazar",tipo:"unidad",stock:7, costo:4800, precios:[{qty:"1 unidad",price:8000}],oferta:false,precioOferta:"",emoji:"🧺",imageUrl:"",owner:"compartido"},
+  {id:58,code:"1098",name:"Fuetón 22 Lts",                      cat:"bazar",tipo:"unidad",stock:6, costo:3800, precios:[{qty:"1 unidad",price:6500}],oferta:false,precioOferta:"",emoji:"🪣",imageUrl:"",owner:"compartido"},
+  {id:59,code:"1091",name:"Palangana 820",                       cat:"bazar",tipo:"unidad",stock:15,costo:1300, precios:[{qty:"1 unidad",price:2300}],oferta:false,precioOferta:"",emoji:"🫙",imageUrl:"",owner:"compartido"},
+  {id:60,code:"1016",name:"Fumigador 2 Lts",                     cat:"bazar",tipo:"unidad",stock:5, costo:7800, precios:[{qty:"1 unidad",price:13000}],oferta:false,precioOferta:"",emoji:"💦",imageUrl:"",owner:"compartido"},
+  {id:61,code:"1232",name:"Cortina de Baño Eliplast",            cat:"bazar",tipo:"unidad",stock:10,costo:6000, precios:[{qty:"1 unidad",price:10500}],oferta:false,precioOferta:"",emoji:"🚿",imageUrl:"",owner:"compartido"},
+  /* ── JUGUETERÍA ── */
+  {id:62,code:"1524",name:"Lanza Dardos",                        cat:"jugueteria",tipo:"unidad",stock:15,costo:3500, precios:[{qty:"1 unidad",price:6000}],oferta:false,precioOferta:"",emoji:"🎯",imageUrl:"",owner:"compartido"},
+  {id:63,code:"1531",name:"Rastrillo y Pala Playa",              cat:"jugueteria",tipo:"unidad",stock:20,costo:1500, precios:[{qty:"1 unidad",price:2500}],oferta:false,precioOferta:"",emoji:"🏖️",imageUrl:"",owner:"compartido"},
+  {id:64,code:"1507",name:"Cocina Balde Infantil",               cat:"jugueteria",tipo:"unidad",stock:8, costo:5500, precios:[{qty:"1 unidad",price:9500}],oferta:false,precioOferta:"",emoji:"🍳",imageUrl:"",owner:"compartido"},
+  {id:65,code:"1552",name:"Juego UNO",                           cat:"jugueteria",tipo:"unidad",stock:20,costo:2000, precios:[{qty:"1 unidad",price:3500}],oferta:false,precioOferta:"",emoji:"🃏",imageUrl:"",owner:"compartido"},
+  {id:66,code:"1553",name:"Jenga",                               cat:"jugueteria",tipo:"unidad",stock:12,costo:1200, precios:[{qty:"1 unidad",price:2200}],oferta:false,precioOferta:"",emoji:"🧱",imageUrl:"",owner:"compartido"},
+  {id:67,code:"1563",name:"Muñeca Sirena con Luz",               cat:"jugueteria",tipo:"unidad",stock:10,costo:2900, precios:[{qty:"1 unidad",price:5000}],oferta:false,precioOferta:"",emoji:"🧜",imageUrl:"",owner:"compartido"},
+  {id:68,code:"1570",name:"Dino 3D para Armar",                  cat:"jugueteria",tipo:"unidad",stock:15,costo:1000, precios:[{qty:"1 unidad",price:1900}],oferta:false,precioOferta:"",emoji:"🦕",imageUrl:"",owner:"compartido"},
+  {id:69,code:"1600",name:"Pelota Fútbol / Voley N°5",           cat:"jugueteria",tipo:"unidad",stock:10,costo:5900, precios:[{qty:"1 unidad",price:10000}],oferta:false,precioOferta:"",emoji:"⚽",imageUrl:"",owner:"compartido"},
+  {id:70,code:"1556",name:"Pelota de Fútbol River",              cat:"jugueteria",tipo:"unidad",stock:8, costo:5900, precios:[{qty:"1 unidad",price:10000}],oferta:false,precioOferta:"",emoji:"⚽",imageUrl:"",owner:"compartido"},
+  {id:71,code:"1544",name:"Dinosaurio Grande",                   cat:"jugueteria",tipo:"unidad",stock:6, costo:7900, precios:[{qty:"1 unidad",price:13500}],oferta:false,precioOferta:"",emoji:"🦖",imageUrl:"",owner:"compartido"},
+  {id:72,code:"1557",name:"Camión con Acoplado",                 cat:"jugueteria",tipo:"unidad",stock:5, costo:18000,precios:[{qty:"1 unidad",price:30000}],oferta:false,precioOferta:"",emoji:"🚛",imageUrl:"",owner:"compartido"},
+  {id:73,code:"1508",name:"Duravit Masa Balde",                  cat:"jugueteria",tipo:"unidad",stock:12,costo:5900, precios:[{qty:"1 unidad",price:10000}],oferta:false,precioOferta:"",emoji:"🎨",imageUrl:"",owner:"compartido"},
+  {id:74,code:"1571",name:"Juegos de Mesa Caja",                 cat:"jugueteria",tipo:"unidad",stock:10,costo:3400, precios:[{qty:"1 unidad",price:6000}],oferta:false,precioOferta:"",emoji:"🎲",imageUrl:"",owner:"compartido"},
+  /* ── AROMÁTICOS ── */
+  {id:75,code:"1043",name:"Sahumerios Alaukik Caja Grande",      cat:"aromaticos",tipo:"unidad",stock:25,costo:2294,precios:[{qty:"1 caja",price:3800}],oferta:false,precioOferta:"",emoji:"🌸",imageUrl:"",owner:"compartido"},
+  {id:76,code:"1057",name:"Difusor Saphirus",                    cat:"aromaticos",tipo:"unidad",stock:18,costo:3620,precios:[{qty:"1 unidad",price:5800}],oferta:false,precioOferta:"",emoji:"🌸",imageUrl:"",owner:"compartido"},
+  {id:77,code:"1060",name:"Difusor Essenza 125ml",               cat:"aromaticos",tipo:"unidad",stock:20,costo:2265,precios:[{qty:"1 unidad",price:3800}],oferta:false,precioOferta:"",emoji:"🌺",imageUrl:"",owner:"compartido"},
+  {id:78,code:"1064",name:"Home Spray Saphirus",                 cat:"aromaticos",tipo:"unidad",stock:20,costo:3300,precios:[{qty:"1 unidad",price:5200}],oferta:true,precioOferta:4500,emoji:"💨",imageUrl:"",owner:"compartido"},
+  {id:79,code:"1065",name:"Perfume Textil Ámbar 150ml",          cat:"aromaticos",tipo:"unidad",stock:30,costo:866, precios:[{qty:"1 unidad",price:1800}],oferta:false,precioOferta:"",emoji:"🧴",imageUrl:"",owner:"compartido"},
+  {id:80,code:"1066",name:"Perfume Ropa 250cc Essenza",          cat:"aromaticos",tipo:"unidad",stock:20,costo:1528,precios:[{qty:"1 unidad",price:2800}],oferta:false,precioOferta:"",emoji:"🧴",imageUrl:"",owner:"compartido"},
+  {id:81,code:"1067",name:"Aerosol Essenza",                     cat:"aromaticos",tipo:"unidad",stock:15,costo:2837,precios:[{qty:"1 unidad",price:4800}],oferta:false,precioOferta:"",emoji:"💨",imageUrl:"",owner:"compartido"},
+  {id:82,code:"1075",name:"Aerosol Saphirus",                    cat:"aromaticos",tipo:"unidad",stock:12,costo:4050,precios:[{qty:"1 unidad",price:6800}],oferta:false,precioOferta:"",emoji:"💨",imageUrl:"",owner:"compartido"},
+  {id:83,code:"1053",name:"Palo Santo Bolsa",                    cat:"aromaticos",tipo:"unidad",stock:15,costo:2550,precios:[{qty:"1 bolsa",price:4000}],oferta:false,precioOferta:"",emoji:"🌿",imageUrl:"",owner:"compartido"},
+  {id:84,code:"1110",name:"Sahumerios Dhoops x10",               cat:"aromaticos",tipo:"unidad",stock:20,costo:1050,precios:[{qty:"1 caja",price:1900}],oferta:false,precioOferta:"",emoji:"🌸",imageUrl:"",owner:"compartido"},
+  {id:85,code:"1042",name:"Esencia Líquida para Hornillo 10cc",  cat:"aromaticos",tipo:"unidad",stock:25,costo:642, precios:[{qty:"1 unidad",price:1200}],oferta:false,precioOferta:"",emoji:"🌺",imageUrl:"",owner:"compartido"},
+  {id:86,code:"1043",name:"Esencia Sólida Hornillo Formita",     cat:"aromaticos",tipo:"unidad",stock:25,costo:642, precios:[{qty:"1 unidad",price:1200}],oferta:false,precioOferta:"",emoji:"🌺",imageUrl:"",owner:"compartido"},
+  {id:87,code:"1345",name:"Escencia Humificador Essenza",        cat:"aromaticos",tipo:"unidad",stock:15,costo:2300,precios:[{qty:"1 unidad",price:4000}],oferta:false,precioOferta:"",emoji:"💧",imageUrl:"",owner:"compartido"},
+  /* ── ELECTRÓNICOS ── */
+  {id:88,code:"1284",name:"Foco LED 12W Blanco",                 cat:"electronicos",tipo:"unidad",stock:30,costo:1020, precios:[{qty:"1 unidad",price:2200},{qty:"5 unidades",price:9000}],oferta:false,precioOferta:"",emoji:"💡",imageUrl:"",owner:"compartido"},
+  {id:89,code:"1415",name:"Foco LED 30W",                        cat:"electronicos",tipo:"unidad",stock:15,costo:2950, precios:[{qty:"1 unidad",price:5000}],oferta:false,precioOferta:"",emoji:"💡",imageUrl:"",owner:"compartido"},
+  {id:90,code:"1344",name:"Tira LED 5 Metros",                   cat:"electronicos",tipo:"unidad",stock:10,costo:8900, precios:[{qty:"1 unidad",price:15000}],oferta:false,precioOferta:"",emoji:"💡",imageUrl:"",owner:"compartido"},
+  {id:91,code:"1388",name:"Tira LED Neón RGB con Bluetooth",     cat:"electronicos",tipo:"unidad",stock:8, costo:14900,precios:[{qty:"1 unidad",price:25000}],oferta:false,precioOferta:"",emoji:"🌈",imageUrl:"",owner:"compartido"},
+  {id:92,code:"1359",name:"Auriculares Inalámbricos E6S",        cat:"electronicos",tipo:"unidad",stock:8, costo:5200, precios:[{qty:"1 unidad",price:9000}],oferta:true, precioOferta:7500,emoji:"🎧",imageUrl:"",owner:"compartido"},
+  {id:93,code:"1361",name:"Pava Eléctrica",                      cat:"electronicos",tipo:"unidad",stock:5, costo:13900,precios:[{qty:"1 unidad",price:23000}],oferta:false,precioOferta:"",emoji:"☕",imageUrl:"",owner:"compartido"},
+  {id:94,code:"1330",name:"Tira LED 5m",                         cat:"electronicos",tipo:"unidad",stock:10,costo:8900, precios:[{qty:"1 unidad",price:15000}],oferta:false,precioOferta:"",emoji:"💡",imageUrl:"",owner:"compartido"},
+  {id:95,code:"1306",name:"Humificador Panda",                   cat:"electronicos",tipo:"unidad",stock:8, costo:7480, precios:[{qty:"1 unidad",price:13000}],oferta:false,precioOferta:"",emoji:"🐼",imageUrl:"",owner:"compartido"},
+  {id:96,code:"1401",name:"Humificador Volcán",                  cat:"electronicos",tipo:"unidad",stock:6, costo:14900,precios:[{qty:"1 unidad",price:25000}],oferta:false,precioOferta:"",emoji:"🌋",imageUrl:"",owner:"compartido"},
+  {id:97,code:"1358",name:"Linterna Llavero",                    cat:"electronicos",tipo:"unidad",stock:15,costo:4590, precios:[{qty:"1 unidad",price:7500}],oferta:false,precioOferta:"",emoji:"🔦",imageUrl:"",owner:"compartido"},
+  {id:98,code:"1388",name:"Tira de Neón RGB",                    cat:"electronicos",tipo:"unidad",stock:8, costo:14900,precios:[{qty:"1 unidad",price:25000}],oferta:false,precioOferta:"",emoji:"🌈",imageUrl:"",owner:"compartido"},
+  {id:99,code:"1387",name:"Batidor de Café a Pila",              cat:"electronicos",tipo:"unidad",stock:12,costo:3760, precios:[{qty:"1 unidad",price:6500}],oferta:false,precioOferta:"",emoji:"☕",imageUrl:"",owner:"compartido"},
+  /* ── OTROS ── */
+  {id:100,code:"1039",name:"Bolsas Residuos 45x60 x30 unidades",cat:"otros",tipo:"unidad",stock:50,costo:1100,precios:[{qty:"1 paquete",price:2000}],oferta:false,precioOferta:"",emoji:"🛍️",imageUrl:"",owner:"compartido"},
+  {id:101,code:"1082",name:"Bolsa 60x90",                        cat:"otros",tipo:"unidad",stock:40,costo:1400,precios:[{qty:"1 unidad",price:2500}],oferta:false,precioOferta:"",emoji:"🛍️",imageUrl:"",owner:"compartido"},
+  {id:102,code:"1083",name:"Bolsa 45x60",                        cat:"otros",tipo:"unidad",stock:40,costo:1100,precios:[{qty:"1 unidad",price:2000}],oferta:false,precioOferta:"",emoji:"🛍️",imageUrl:"",owner:"compartido"},
+  {id:103,code:"1100",name:"Papel Higiénico Acme 100m",          cat:"otros",tipo:"unidad",stock:30,costo:1600,precios:[{qty:"1 unidad",price:2800}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:104,code:"1154",name:"Papel Higiénico Higienol 80m",       cat:"otros",tipo:"unidad",stock:25,costo:3880,precios:[{qty:"1 unidad",price:6500}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:105,code:"1123",name:"Rollo de Cocina x3",                 cat:"otros",tipo:"unidad",stock:20,costo:1960,precios:[{qty:"1 paquete",price:3500}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:106,code:"1155",name:"Servilletas de Papel x80",           cat:"otros",tipo:"unidad",stock:30,costo:1000,precios:[{qty:"1 paquete",price:1800}],oferta:false,precioOferta:"",emoji:"🧻",imageUrl:"",owner:"compartido"},
+  {id:107,code:"1075",name:"Guantes de Goma Dismar",             cat:"otros",tipo:"unidad",stock:25,costo:1268,precios:[{qty:"1 par",price:2200}],oferta:false,precioOferta:"",emoji:"🧤",imageUrl:"",owner:"compartido"},
+  {id:108,code:"1319",name:"Perfumina 500ml Conti Hogar c/Gatillo",cat:"otros",tipo:"unidad",stock:20,costo:2500,precios:[{qty:"1 unidad",price:4200}],oferta:false,precioOferta:"",emoji:"🧴",imageUrl:"",owner:"compartido"},
+  {id:109,code:"1037",name:"Veneno Hormigas Yarara 150g",        cat:"otros",tipo:"unidad",stock:20,costo:2375,precios:[{qty:"1 unidad",price:4000}],oferta:false,precioOferta:"",emoji:"🐜",imageUrl:"",owner:"compartido"},
+  {id:110,code:"1038",name:"Veneno Polvo Chino Cucarachas",      cat:"otros",tipo:"unidad",stock:30,costo:576, precios:[{qty:"1 unidad",price:1100}],oferta:false,precioOferta:"",emoji:"🪳",imageUrl:"",owner:"compartido"},
+  {id:111,code:"1120",name:"Raqueta Mata Mosca y Mosquito",      cat:"otros",tipo:"unidad",stock:10,costo:7500,precios:[{qty:"1 unidad",price:13000}],oferta:false,precioOferta:"",emoji:"🦟",imageUrl:"",owner:"compartido"},
+  {id:112,code:"1076",name:"Raid Aerosol Mosquitos 380cm³",      cat:"otros",tipo:"unidad",stock:15,costo:4400,precios:[{qty:"1 unidad",price:7500}],oferta:false,precioOferta:"",emoji:"💨",imageUrl:"",owner:"compartido"},
+  {id:113,code:"1122",name:"Harpic Removedor Sarro 500ml",       cat:"otros",tipo:"unidad",stock:12,costo:4900,precios:[{qty:"1 unidad",price:8500}],oferta:false,precioOferta:"",emoji:"🚿",imageUrl:"",owner:"compartido"},
+  {id:114,code:"1126",name:"Cif Crema Original 500ml",           cat:"otros",tipo:"unidad",stock:15,costo:2700,precios:[{qty:"1 unidad",price:4800}],oferta:false,precioOferta:"",emoji:"✨",imageUrl:"",owner:"compartido"},
+  {id:115,code:"1151",name:"Jabón Dove 90gr",                    cat:"otros",tipo:"unidad",stock:20,costo:1600,precios:[{qty:"1 unidad",price:2800}],oferta:false,precioOferta:"",emoji:"🧼",imageUrl:"",owner:"compartido"},
+  {id:116,code:"1162",name:"Colgate Triple Acción 140gr",        cat:"otros",tipo:"unidad",stock:20,costo:3200,precios:[{qty:"1 unidad",price:5500}],oferta:false,precioOferta:"",emoji:"🪥",imageUrl:"",owner:"compartido"},
+];
+
+/* ── HELPERS ── */
+const fm=(n)=>Number(n||0).toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0});
+const stockSt=(p)=>{if(!p.stock||p.stock<=0)return"agotado";if(p.stock<=3)return"poco";return"ok";};
+
+function loadLS(key,def){try{const s=localStorage.getItem(key);if(s)return JSON.parse(s);}catch(e){}return def;}
+function saveLS(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
+function normalizeProducts(prods){return prods.map(p=>({visible:true,...p}));}
+
+function getOwner(id){return OWNERS.find(o=>o.id===id)||OWNERS[2];}
+
+function calcOwnerBreakdown(items){
+  const b={nico:0,jeni:0};
+  items.forEach(item=>{
+    const total=item.price*item.qty;
+    if(item.owner==="nico") b.nico+=total;
+    else if(item.owner==="jeni") b.jeni+=total;
+    else{b.nico+=total/2;b.jeni+=total/2;}
+  });
+  return b;
+}
+
+/* ── PRODUCTIMAGE ── */
+function ProductImage({p,size=68,height=155}){
+  if(p.imageUrl){
+    return <img src={p.imageUrl} alt={p.name} style={{width:"100%",height,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}}/>;
+  }
+  return <div style={{height,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size}}>{p.emoji||"📦"}</div>;
+}
+
+/* ── TOAST ── */
+function Toast({msg}){
+  if(!msg)return null;
+  return <div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"#1a1a1a",color:"#FFE000",padding:"10px 22px",borderRadius:999,fontSize:13,fontWeight:600,zIndex:9999,boxShadow:"0 4px 16px rgba(0,0,0,.3)",whiteSpace:"nowrap",pointerEvents:"none"}}>{msg}</div>;
+}
+
+/* ── PIN GATE ── */
+function PinGate({onAuth,onClose,title}){
+  const [pin,setPin]=useState("");
+  const [err,setErr]=useState(false);
+  const check=()=>{
+    if(pin===ADMIN_PIN){onAuth();}
+    else{setErr(true);setPin("");setTimeout(()=>setErr(false),1500);}
+  };
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:14,padding:32,maxWidth:320,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+        <div style={{fontSize:36,marginBottom:12}}>🔐</div>
+        <h2 style={{fontSize:17,fontWeight:800,marginBottom:6}}>{title}</h2>
+        <p style={{fontSize:12,color:"#888",marginBottom:20}}>Ingresá la contraseña de administración</p>
+        <input type="password" value={pin} onChange={e=>setPin(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&check()}
+          maxLength={20} placeholder="Contraseña"
+          style={{width:"100%",padding:"12px",fontSize:14,letterSpacing:2,textAlign:"center",border:err?"2px solid #e22":"2px solid #e0e0e0",borderRadius:8,outline:"none",marginBottom:8,transition:"border .2s"}}/>
+        {err&&<p style={{fontSize:12,color:"#e22",marginBottom:8}}>PIN incorrecto</p>}
+        <button onClick={check}
+          style={{width:"100%",background:"#FFE000",color:"#1a1a1a",border:"none",padding:"12px",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:8}}>
+          Ingresar
+        </button>
+        <button onClick={onClose}
+          style={{width:"100%",background:"none",color:"#888",border:"1px solid #e0e0e0",padding:"10px",borderRadius:8,fontSize:13,cursor:"pointer"}}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── ADMIN PANEL ── */
+function AdminPanel({products,onClose,onSave}){
+  const [search,setSearch]=useState("");
+  const [editP,setEditP]=useState(null);
+  const [prods,setProds]=useState(products);
+
+  const filtered=prods.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.code.includes(search));
+
+  const openEdit=(p)=>setEditP({...p,precios:JSON.parse(JSON.stringify(p.precios))});
+
+  const openNew=()=>{
+    const newId=Date.now();
+    setEditP({
+      id:newId,_isNew:true,
+      code:"",name:"Nuevo producto",
+      cat:"otros",tipo:"unidad",
+      stock:0,costo:0,
+      precios:[{qty:"1 unidad",price:0}],
+      oferta:false,precioOferta:"",
+      emoji:"📦",imageUrl:"",
+      owner:"compartido",visible:true
+    });
+  };
+
+  const saveEdit=(updated)=>{
+    let next;
+    if(updated._isNew){
+      const {_isNew,...clean}=updated;
+      next=[...prods,clean];
+    } else {
+      next=prods.map(p=>p.id===updated.id?updated:p);
+    }
+    setProds(next);
+    onSave(next);
+    setEditP(null);
+  };
+
+  const deleteProduct=(p)=>{
+    if(!window.confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`))return;
+    const next=prods.filter(x=>x.id!==p.id);
+    setProds(next);
+    onSave(next);
+  };
+
+  const toggleVisible=(p)=>{
+    const next=prods.map(x=>x.id===p.id?{...x,visible:x.visible===false?true:false}:x);
+    setProds(next);
+    onSave(next);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:1500,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+      <div style={{background:"#fff",borderRadius:14,width:"100%",maxWidth:780,boxShadow:"0 20px 60px rgba(0,0,0,.3)",marginTop:20}}>
+        {/* Header */}
+        <div style={{background:"#1a1a1a",borderRadius:"14px 14px 0 0",padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:800,color:"#FFE000"}}>⚙️ Panel de Administración</div>
+            <div style={{fontSize:11,color:"#888",marginTop:2}}>Editá productos, imágenes y propietarios</div>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={openNew}
+              style={{background:"#FFE000",color:"#1a1a1a",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:800,display:"flex",alignItems:"center",gap:5}}>
+              ＋ Nuevo producto
+            </button>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,.1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:13,fontWeight:600}}>✕ Cerrar</button>
+          </div>
+        </div>
+        {/* Search */}
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #eee"}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="Buscar producto por nombre o código…"
+            style={{width:"100%",padding:"9px 13px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none"}}/>
+          <p style={{fontSize:11,color:"#888",marginTop:6}}>{filtered.length} productos</p>
+        </div>
+        {/* List */}
+        <div style={{maxHeight:"60vh",overflowY:"auto",padding:"12px 20px",display:"flex",flexDirection:"column",gap:8}}>
+          {filtered.map(p=>{
+            const ow=getOwner(p.owner);
+            const isHidden=p.visible===false;
+            return(
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",border:"1.5px solid #eee",borderRadius:10,background:isHidden?"#f8f8f8":"#fafafa",opacity:isHidden?0.6:1}}>
+                <div style={{width:46,height:46,background:"#fffbea",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,overflow:"hidden"}}>
+                  {p.imageUrl?<img src={p.imageUrl} style={{width:46,height:46,objectFit:"cover",borderRadius:8}} onError={e=>{e.target.style.display="none";}}/>:p.emoji}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:13,fontWeight:600,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name} {isHidden&&<span style={{fontSize:10,color:"#e55",fontWeight:700,background:"#fee2e2",padding:"1px 6px",borderRadius:999,marginLeft:4}}>OCULTO</span>}</p>
+                  <p style={{fontSize:11,color:"#888",margin:"2px 0 0"}}>Cód: {p.code} · {fm(p.precios[0]?.price||0)} · Stock: {p.stock}</p>
+                </div>
+                <span style={{background:ow.bg,color:ow.color,fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:999,flexShrink:0}}>{ow.label}</span>
+                <button onClick={()=>toggleVisible(p)} title={isHidden?"Mostrar producto":"Ocultar producto"}
+                  style={{background:isHidden?"#f0fdf4":"#f3f4f6",border:"none",borderRadius:7,padding:"7px 10px",cursor:"pointer",fontSize:16,flexShrink:0}}>
+                  {isHidden?"👁️":"🚫"}
+                </button>
+                <button onClick={()=>openEdit(p)}
+                  style={{background:"#FFE000",border:"none",borderRadius:7,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>
+                  ✏️ Editar
+                </button>
+                <button onClick={()=>deleteProduct(p)} title="Eliminar producto"
+                  style={{background:"#fee2e2",border:"none",borderRadius:7,padding:"7px 10px",cursor:"pointer",fontSize:14,flexShrink:0,color:"#dc2626"}}>
+                  🗑️
+                </button>
+              </div>
+            );
+          })}
+          {filtered.length===0&&(
+            <div style={{textAlign:"center",padding:"40px 0",color:"#bbb"}}>
+              <div style={{fontSize:36}}>🔍</div>
+              <p style={{marginTop:8,fontSize:13}}>No hay resultados</p>
+            </div>
+          )}
+        </div>
+      </div>
+      {editP&&<EditProductModal p={editP} onClose={()=>setEditP(null)} onSave={saveEdit} isNew={!!editP._isNew}/>}
+    </div>
+  );
+}
+
+/* ── EDIT PRODUCT MODAL ── */
+function EditProductModal({p,onClose,onSave,isNew}){
+  const [form,setForm]=useState({...p});
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const setPrice=(i,k,v)=>{
+    const pr=[...form.precios];
+    pr[i]={...pr[i],[k]:k==="price"?Number(v)||0:v};
+    setForm(f=>({...f,precios:pr}));
+  };
+  const addPrice=()=>setForm(f=>({...f,precios:[...f.precios,{qty:"",price:0}]}));
+  const removePrice=(i)=>setForm(f=>({...f,precios:f.precios.filter((_,idx)=>idx!==i)}));
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:2500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:14,width:"100%",maxWidth:520,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fffbea"}}>
+          <div style={{fontSize:14,fontWeight:700}}>{isNew?"➕ Nuevo producto":"✏️ Editar: "+p.name}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#555"}}>✕</button>
+        </div>
+        <div style={{padding:20,display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* Nombre */}
+          <label style={{display:"flex",flexDirection:"column",gap:4}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5}}>Nombre</span>
+            <input value={form.name} onChange={e=>set("name",e.target.value)}
+              style={{padding:"9px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none"}}/>
+          </label>
+
+          {/* Código + Stock */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <label style={{display:"flex",flexDirection:"column",gap:4}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5}}>Código</span>
+              <input value={form.code} onChange={e=>set("code",e.target.value)}
+                style={{padding:"9px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none"}}/>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:4}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5}}>Stock</span>
+              <input type="number" value={form.stock} onChange={e=>set("stock",Number(e.target.value)||0)}
+                style={{padding:"9px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none"}}/>
+            </label>
+          </div>
+
+          {/* Imagen del producto */}
+          <div>
+            <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:8}}>Imagen del producto</span>
+            {/* Preview */}
+            <div style={{borderRadius:10,overflow:"hidden",border:"2px dashed #e0e0e0",height:130,display:"flex",alignItems:"center",justifyContent:"center",background:"#fafafa",marginBottom:8,position:"relative"}}>
+              {form.imageUrl
+                ?<img src={form.imageUrl} alt="preview" style={{maxHeight:130,maxWidth:"100%",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}}/>
+                :<span style={{fontSize:56}}>{form.emoji||"📦"}</span>
+              }
+              {form.imageUrl&&<button onClick={()=>set("imageUrl","")} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.55)",color:"#fff",border:"none",borderRadius:999,width:24,height:24,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+            </div>
+            {/* Upload desde dispositivo */}
+            <label style={{display:"block",marginBottom:8}}>
+              <span style={{display:"block",textAlign:"center",padding:"9px",background:"#1a1a1a",color:"#FFE000",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700}}>
+                📷 Subir foto desde el dispositivo
+              </span>
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+                const file=e.target.files[0];
+                if(!file)return;
+                const reader=new FileReader();
+                reader.onload=ev=>set("imageUrl",ev.target.result);
+                reader.readAsDataURL(file);
+              }}/>
+            </label>
+            <div style={{display:"grid",gridTemplateColumns:"80px 1fr",gap:8,alignItems:"start"}}>
+              <label style={{display:"flex",flexDirection:"column",gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Emoji</span>
+                <input value={form.emoji} onChange={e=>set("emoji",e.target.value)}
+                  style={{padding:"9px 8px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:18,outline:"none",textAlign:"center"}}/>
+              </label>
+              <label style={{display:"flex",flexDirection:"column",gap:4}}>
+                <span style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>O URL de imagen</span>
+                <input value={form.imageUrl&&!form.imageUrl.startsWith("data:")?form.imageUrl:""} onChange={e=>set("imageUrl",e.target.value)}
+                  placeholder="https://…"
+                  style={{padding:"9px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:12,outline:"none"}}/>
+              </label>
+            </div>
+          </div>
+
+          {/* Propietario */}
+          <div>
+            <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:8}}>Propietario del producto</span>
+            <div style={{display:"flex",gap:8}}>
+              {OWNERS.map(ow=>(
+                <button key={ow.id} onClick={()=>set("owner",ow.id)}
+                  style={{flex:1,padding:"10px 8px",border:form.owner===ow.id?`2px solid ${ow.color}`:"2px solid #e0e0e0",
+                          borderRadius:8,background:form.owner===ow.id?ow.bg:"#fff",
+                          color:form.owner===ow.id?ow.color:"#555",
+                          fontWeight:form.owner===ow.id?800:400,fontSize:13,cursor:"pointer",transition:"all .15s"}}>
+                  {ow.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Categoría */}
+          <label style={{display:"flex",flexDirection:"column",gap:4}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5}}>Categoría</span>
+            <select value={form.cat} onChange={e=>set("cat",e.target.value)}
+              style={{padding:"9px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none",background:"#fff"}}>
+              {CATS.filter(c=>c.id!=="todos").map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+            </select>
+          </label>
+
+          {/* Precios */}
+          <div>
+            <span style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:8}}>Precios / Presentaciones</span>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {form.precios.map((pr,i)=>(
+                <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:6,alignItems:"center"}}>
+                  <input value={pr.qty} onChange={e=>setPrice(i,"qty",e.target.value)}
+                    placeholder="Ej: 1 litro"
+                    style={{padding:"8px 10px",border:"1.5px solid #e0e0e0",borderRadius:7,fontSize:12,outline:"none"}}/>
+                  <input type="number" value={pr.price} onChange={e=>setPrice(i,"price",e.target.value)}
+                    placeholder="Precio"
+                    style={{padding:"8px 10px",border:"1.5px solid #e0e0e0",borderRadius:7,fontSize:12,outline:"none"}}/>
+                  <button onClick={()=>removePrice(i)}
+                    style={{background:"#fee2e2",border:"none",borderRadius:7,padding:"8px 10px",cursor:"pointer",color:"#e22",fontSize:14}}>✕</button>
+                </div>
+              ))}
+              <button onClick={addPrice}
+                style={{background:"#f0fdf4",border:"1.5px dashed #86efac",borderRadius:7,padding:"8px",cursor:"pointer",color:"#16a34a",fontSize:12,fontWeight:600}}>
+                + Agregar presentación
+              </button>
+            </div>
+          </div>
+
+          {/* Oferta */}
+          <div style={{background:"#fffbea",borderRadius:8,padding:12,border:"1px solid #fde68a"}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:form.oferta?10:0}}>
+              <input type="checkbox" checked={form.oferta} onChange={e=>set("oferta",e.target.checked)} style={{width:16,height:16}}/>
+              <span style={{fontSize:13,fontWeight:600}}>⚡ Producto en oferta</span>
+            </label>
+            {form.oferta&&(
+              <div style={{marginTop:8}}>
+                <label style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",display:"block",marginBottom:4}}>Precio de oferta</label>
+                <input type="number" value={form.precioOferta||""} onChange={e=>set("precioOferta",Number(e.target.value)||"")}
+                  placeholder="Ej: 15000"
+                  style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none"}}/>
+              </div>
+            )}
+          </div>
+
+          {/* Botones */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:4}}>
+            <button onClick={onClose}
+              style={{padding:"12px",background:"none",border:"1.5px solid #e0e0e0",borderRadius:8,cursor:"pointer",fontSize:13,color:"#555"}}>
+              Cancelar
+            </button>
+            <button onClick={()=>onSave(form)}
+              style={{padding:"12px",background:"#FFE000",border:"none",borderRadius:8,cursor:"pointer",fontSize:14,fontWeight:800,color:"#1a1a1a"}}>
+              {isNew?"✅ Crear producto":"💾 Guardar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── VENTA INTERNA ── */
+function VentaInterna({products,onClose,onSave}){
+  const [search,setSearch]=useState("");
+  const [cart,setCart]=useState([]);
+  const [pago,setPago]=useState("efectivo");
+  const [cliente,setCliente]=useState("");
+  const [done,setDone]=useState(false);
+  const [lastSale,setLastSale]=useState(null);
+
+  const filtered=useMemo(()=>{
+    if(!search.trim()) return products.slice(0,30);
+    return products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.code.includes(search)).slice(0,30);
+  },[search,products]);
+
+  const addItem=(p,optIdx=0)=>{
+    const pr=p.precios[optIdx]||p.precios[0];
+    setCart(prev=>{
+      const ex=prev.find(i=>i.id===p.id&&i.selectedQty===pr.qty);
+      if(ex)return prev.map(i=>i.id===p.id&&i.selectedQty===pr.qty?{...i,qty:i.qty+1}:i);
+      return [...prev,{...p,price:pr.price,selectedQty:pr.qty,qty:1}];
+    });
+  };
+
+  const removeItem=(item)=>setCart(prev=>prev.filter(i=>!(i.id===item.id&&i.selectedQty===item.selectedQty)));
+  const changeQty=(item,qty)=>{
+    if(qty<1){removeItem(item);return;}
+    setCart(prev=>prev.map(i=>i.id===item.id&&i.selectedQty===item.selectedQty?{...i,qty}:i));
+  };
+
+  const pg=PAGOS.find(x=>x.id===pago);
+  const subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const recargo=Math.round(subtotal*(pg?.recargo||0)/100);
+  const total=subtotal+recargo;
+
+  const confirm=()=>{
+    if(cart.length===0)return;
+    const sale={
+      id:Date.now(),
+      timestamp:new Date().toISOString(),
+      items:cart.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price,selectedQty:i.selectedQty,owner:i.owner||"compartido",cat:i.cat})),
+      pago,cliente,subtotal,recargo,total,
+      ownerBreakdown:calcOwnerBreakdown(cart),
+    };
+    onSave(sale);
+    setLastSale(sale);
+    setDone(true);
+  };
+
+  if(done&&lastSale){
+    const bd=lastSale.ownerBreakdown;
+    return(
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:1500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div style={{background:"#fff",borderRadius:14,width:"100%",maxWidth:420,padding:32,textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+          <div style={{fontSize:52}}>✅</div>
+          <h2 style={{fontSize:18,fontWeight:800,margin:"12px 0 6px"}}>¡Venta registrada!</h2>
+          <p style={{fontSize:13,color:"#888",marginBottom:20}}>{new Date(lastSale.timestamp).toLocaleString("es-AR")}</p>
+          <div style={{background:"#f5f5f5",borderRadius:10,padding:16,marginBottom:16,textAlign:"left"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,color:"#666"}}>Pago:</span>
+              <span style={{fontSize:12,fontWeight:600}}>{PAGOS.find(x=>x.id===lastSale.pago)?.label}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,color:"#666"}}>Subtotal:</span>
+              <span style={{fontSize:12,fontWeight:600}}>{fm(lastSale.subtotal)}</span>
+            </div>
+            {lastSale.recargo>0&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,color:"#e22"}}>Recargo:</span>
+              <span style={{fontSize:12,fontWeight:600,color:"#e22"}}>+{fm(lastSale.recargo)}</span>
+            </div>}
+            <div style={{display:"flex",justifyContent:"space-between",borderTop:"2px solid #FFE000",paddingTop:8,marginTop:4}}>
+              <span style={{fontWeight:800}}>Total</span>
+              <span style={{fontWeight:800,fontSize:15}}>{fm(lastSale.total)}</span>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+            <div style={{background:"#eff6ff",borderRadius:8,padding:10,textAlign:"center"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#3b82f6",marginBottom:4}}>NICO</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#1d4ed8"}}>{fm(bd.nico)}</div>
+            </div>
+            <div style={{background:"#fdf2f8",borderRadius:8,padding:10,textAlign:"center"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#ec4899",marginBottom:4}}>JENI</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#be185d"}}>{fm(bd.jeni)}</div>
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{width:"100%",background:"#FFE000",border:"none",borderRadius:8,padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+            Listo 👍
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:1500,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+      <div style={{background:"#fff",borderRadius:14,width:"100%",maxWidth:820,boxShadow:"0 20px 60px rgba(0,0,0,.3)",marginTop:20}}>
+        {/* Header */}
+        <div style={{background:"#1a1a1a",borderRadius:"14px 14px 0 0",padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:800,color:"#FFE000"}}>🧾 Registrar Venta</div>
+            <div style={{fontSize:11,color:"#888",marginTop:2}}>Uso interno · Conti Hogar</div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,.1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:13,fontWeight:600}}>✕ Cerrar</button>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:0}}>
+          {/* Left: productos */}
+          <div style={{borderRight:"1px solid #eee",padding:16}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="Buscar producto…"
+              style={{width:"100%",padding:"9px 13px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:13,outline:"none",marginBottom:10}}/>
+            <div style={{maxHeight:"55vh",overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+              {filtered.map(p=>{
+                const ow=getOwner(p.owner||"compartido");
+                return(
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:"1.5px solid #eee",borderRadius:9,background:"#fafafa",cursor:"pointer"}}
+                    onClick={()=>addItem(p)}>
+                    <div style={{fontSize:22,width:36,height:36,background:"#fffbea",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+                      {p.imageUrl?<img src={p.imageUrl} style={{width:36,height:36,objectFit:"cover",borderRadius:7}} onError={e=>{e.target.style.display="none";}}/>:p.emoji}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontSize:12,fontWeight:600,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</p>
+                      <p style={{fontSize:11,color:"#888",margin:"2px 0 0"}}>{fm(p.precios[0]?.price||0)} · {p.precios[0]?.qty}</p>
+                    </div>
+                    <span style={{background:ow.bg,color:ow.color,fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:999,flexShrink:0}}>{ow.label}</span>
+                    {p.precios.length>1&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                        {p.precios.map((pr,i)=>(
+                          <button key={i} onClick={e=>{e.stopPropagation();addItem(p,i);}}
+                            style={{background:"#FFE000",border:"none",borderRadius:5,padding:"3px 7px",cursor:"pointer",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>
+                            +{pr.qty}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {p.precios.length===1&&(
+                      <button style={{background:"#FFE000",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:700}}>+</button>
+                    )}
+                  </div>
+                );
+              })}
+              {filtered.length===0&&<p style={{textAlign:"center",color:"#aaa",padding:20,fontSize:13}}>No hay resultados</p>}
+            </div>
+          </div>
+
+          {/* Right: carrito */}
+          <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5}}>Ticket de venta</div>
+            <div style={{flex:1,maxHeight:"30vh",overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+              {cart.length===0&&<p style={{color:"#bbb",fontSize:12,textAlign:"center",padding:"20px 0"}}>Agregá productos desde la lista →</p>}
+              {cart.map(item=>(
+                <div key={`${item.id}-${item.selectedQty}`} style={{display:"flex",alignItems:"center",gap:8,padding:"8px",background:"#fafafa",borderRadius:8,border:"1px solid #eee"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontSize:11,fontWeight:600,margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.name}</p>
+                    <p style={{fontSize:10,color:"#888",margin:"2px 0 0"}}>{item.selectedQty} · {fm(item.price)}</p>
+                  </div>
+                  <button onClick={()=>changeQty(item,item.qty-1)} style={{background:"#f0f0f0",border:"none",borderRadius:4,width:20,height:20,cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>-</button>
+                  <span style={{fontSize:12,fontWeight:700,minWidth:18,textAlign:"center"}}>{item.qty}</span>
+                  <button onClick={()=>changeQty(item,item.qty+1)} style={{background:"#f0f0f0",border:"none",borderRadius:4,width:20,height:20,cursor:"pointer",fontWeight:700,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  <span style={{fontSize:11,fontWeight:700,minWidth:52,textAlign:"right"}}>{fm(item.price*item.qty)}</span>
+                  <button onClick={()=>removeItem(item)} style={{background:"none",border:"none",cursor:"pointer",color:"#ccc",fontSize:13}}>🗑️</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Cliente */}
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:4}}>Cliente (opcional)</label>
+              <input value={cliente} onChange={e=>setCliente(e.target.value)}
+                placeholder="Nombre del cliente…"
+                style={{width:"100%",padding:"8px 12px",border:"1.5px solid #e0e0e0",borderRadius:8,fontSize:12,outline:"none"}}/>
+            </div>
+
+            {/* Pago */}
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:6}}>Forma de pago</label>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
+                {PAGOS.map(pg2=>(
+                  <button key={pg2.id} onClick={()=>setPago(pg2.id)}
+                    style={{padding:"7px 5px",border:pago===pg2.id?"2px solid #1a1a1a":"1.5px solid #e0e0e0",
+                            borderRadius:6,background:pago===pg2.id?"#FFE000":"#fff",cursor:"pointer",
+                            textAlign:"center",fontSize:11,fontWeight:pago===pg2.id?700:400}}>
+                    {pg2.icon} {pg2.label}
+                    {pg2.sub&&<span style={{display:"block",fontSize:9,color:"#e22"}}>{pg2.sub}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Totales */}
+            <div style={{background:"#f5f5f5",borderRadius:8,padding:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
+                <span style={{color:"#666"}}>Subtotal</span><span>{fm(subtotal)}</span>
+              </div>
+              {recargo>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#e22",marginBottom:4}}>
+                <span>Recargo ({pg?.recargo}%)</span><span>+{fm(recargo)}</span>
+              </div>}
+              <div style={{display:"flex",justifyContent:"space-between",fontWeight:800,fontSize:15,borderTop:"2px solid #FFE000",paddingTop:8,marginTop:4}}>
+                <span>Total</span><span>{fm(total)}</span>
+              </div>
+            </div>
+
+            <button onClick={confirm} disabled={cart.length===0}
+              style={{width:"100%",background:cart.length===0?"#e8e8e8":"#1a1a1a",color:cart.length===0?"#aaa":"#FFE000",
+                      border:"none",borderRadius:8,padding:"13px",fontSize:14,fontWeight:700,
+                      cursor:cart.length===0?"not-allowed":"pointer"}}>
+              ✅ Confirmar Venta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ESTADÍSTICAS ── */
+function EstadisticasPanel({sales,onClose}){
+  const [period,setPeriod]=useState("all");
+
+  const now=new Date();
+  const filtered=sales.filter(s=>{
+    const d=new Date(s.timestamp);
+    if(period==="today"){const t=new Date();t.setHours(0,0,0,0);return d>=t;}
+    if(period==="week"){const t=new Date();t.setDate(t.getDate()-7);return d>=t;}
+    if(period==="month"){const t=new Date();t.setDate(1);t.setHours(0,0,0,0);return d>=t;}
+    return true;
+  });
+
+  const totalVentas=filtered.length;
+  const totalIngresos=filtered.reduce((s,x)=>s+x.total,0);
+  const totalNico=filtered.reduce((s,x)=>s+(x.ownerBreakdown?.nico||0),0);
+  const totalJeni=filtered.reduce((s,x)=>s+(x.ownerBreakdown?.jeni||0),0);
+
+  // Top productos
+  const prodMap={};
+  filtered.forEach(sale=>{
+    sale.items.forEach(item=>{
+      if(!prodMap[item.name]) prodMap[item.name]={name:item.name,qty:0,total:0};
+      prodMap[item.name].qty+=item.qty;
+      prodMap[item.name].total+=item.price*item.qty;
+    });
+  });
+  const topProds=Object.values(prodMap).sort((a,b)=>b.total-a.total).slice(0,8);
+
+  // Ventas por día (últimos 7 días)
+  const dayMap={};
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);dayMap[d.toLocaleDateString("es-AR",{weekday:"short",day:"numeric"})]={label:d.toLocaleDateString("es-AR",{weekday:"short",day:"numeric"}),total:0,count:0};}
+  filtered.forEach(sale=>{
+    const d=new Date(sale.timestamp);
+    const k=d.toLocaleDateString("es-AR",{weekday:"short",day:"numeric"});
+    if(dayMap[k]){dayMap[k].total+=sale.total;dayMap[k].count++;}
+  });
+  const days=Object.values(dayMap);
+  const maxDay=Math.max(...days.map(d=>d.total),1);
+
+  // Pagos
+  const pagoMap={};
+  filtered.forEach(s=>{pagoMap[s.pago]=(pagoMap[s.pago]||0)+s.total;});
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:1500,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+      <div style={{background:"#fff",borderRadius:14,width:"100%",maxWidth:820,boxShadow:"0 20px 60px rgba(0,0,0,.3)",marginTop:20,marginBottom:20}}>
+        {/* Header */}
+        <div style={{background:"#1a1a1a",borderRadius:"14px 14px 0 0",padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:800,color:"#FFE000"}}>📊 Estadísticas de Ventas</div>
+            <div style={{fontSize:11,color:"#888",marginTop:2}}>{totalVentas} ventas registradas</div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,.1)",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:13,fontWeight:600}}>✕ Cerrar</button>
+        </div>
+
+        <div style={{padding:20}}>
+          {/* Filtro período */}
+          <div style={{display:"flex",gap:6,marginBottom:20}}>
+            {[["today","Hoy"],["week","Esta semana"],["month","Este mes"],["all","Todo"]].map(([id,label])=>(
+              <button key={id} onClick={()=>setPeriod(id)}
+                style={{padding:"6px 14px",borderRadius:999,border:"none",cursor:"pointer",fontSize:12,fontWeight:period===id?700:400,
+                        background:period===id?"#1a1a1a":"#f0f0f0",color:period===id?"#FFE000":"#555"}}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {sales.length===0?(
+            <div style={{textAlign:"center",padding:"60px 0",color:"#aaa"}}>
+              <div style={{fontSize:48}}>📭</div>
+              <p style={{marginTop:12,fontSize:14}}>Todavía no hay ventas registradas</p>
+              <p style={{fontSize:12,marginTop:4}}>Usá el botón 🧾 Venta para registrar la primera</p>
+            </div>
+          ):(
+            <>
+              {/* KPIs */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:20}}>
+                <div style={{background:"#1a1a1a",borderRadius:10,padding:"16px",textAlign:"center"}}>
+                  <div style={{fontSize:11,color:"#aaa",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>Total ingresos</div>
+                  <div style={{fontSize:20,fontWeight:900,color:"#FFE000",marginTop:4}}>{fm(totalIngresos)}</div>
+                </div>
+                <div style={{background:"#eff6ff",borderRadius:10,padding:"16px",textAlign:"center"}}>
+                  <div style={{fontSize:11,color:"#3b82f6",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>NICO</div>
+                  <div style={{fontSize:20,fontWeight:900,color:"#1d4ed8",marginTop:4}}>{fm(totalNico)}</div>
+                  <div style={{fontSize:10,color:"#60a5fa",marginTop:2}}>{totalIngresos>0?Math.round(totalNico/totalIngresos*100):0}%</div>
+                </div>
+                <div style={{background:"#fdf2f8",borderRadius:10,padding:"16px",textAlign:"center"}}>
+                  <div style={{fontSize:11,color:"#ec4899",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>JENI</div>
+                  <div style={{fontSize:20,fontWeight:900,color:"#be185d",marginTop:4}}>{fm(totalJeni)}</div>
+                  <div style={{fontSize:10,color:"#f472b6",marginTop:2}}>{totalIngresos>0?Math.round(totalJeni/totalIngresos*100):0}%</div>
+                </div>
+                <div style={{background:"#f0fdf4",borderRadius:10,padding:"16px",textAlign:"center"}}>
+                  <div style={{fontSize:11,color:"#16a34a",fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>Ventas</div>
+                  <div style={{fontSize:20,fontWeight:900,color:"#15803d",marginTop:4}}>{totalVentas}</div>
+                  <div style={{fontSize:10,color:"#4ade80",marginTop:2}}>{totalVentas>0?fm(Math.round(totalIngresos/totalVentas)):fm(0)} promedio</div>
+                </div>
+              </div>
+
+              {/* Gráfico últimos 7 días */}
+              <div style={{background:"#f9f9f9",borderRadius:10,padding:16,marginBottom:16}}>
+                <p style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:12,textTransform:"uppercase",letterSpacing:.5}}>Ventas últimos 7 días</p>
+                <div style={{display:"flex",alignItems:"flex-end",gap:8,height:100}}>
+                  {days.map((d,i)=>(
+                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <span style={{fontSize:9,color:"#888",fontWeight:600}}>{d.total>0?fm(d.total).replace(/\s/g,"").replace("$","$"):"—"}</span>
+                      <div style={{width:"100%",background:d.total>0?"#FFE000":"#e5e5e5",borderRadius:"3px 3px 0 0",height:Math.max(4,Math.round((d.total/maxDay)*70)),transition:"height .3s"}}/>
+                      <span style={{fontSize:9,color:"#888",textAlign:"center",whiteSpace:"nowrap"}}>{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                {/* Top productos */}
+                <div style={{background:"#f9f9f9",borderRadius:10,padding:14}}>
+                  <p style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:10,textTransform:"uppercase",letterSpacing:.5}}>Top Productos</p>
+                  {topProds.length===0?<p style={{color:"#bbb",fontSize:12}}>Sin datos</p>:topProds.map((p,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #eee"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:10,fontWeight:700,color:"#aaa",minWidth:16}}>#{i+1}</span>
+                        <span style={{fontSize:11,fontWeight:600,color:"#1a1a1a"}}>{p.name.slice(0,24)}</span>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:11,fontWeight:700}}>{fm(p.total)}</div>
+                        <div style={{fontSize:9,color:"#aaa"}}>{p.qty} uds</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Por forma de pago */}
+                <div style={{background:"#f9f9f9",borderRadius:10,padding:14}}>
+                  <p style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:10,textTransform:"uppercase",letterSpacing:.5}}>Por forma de pago</p>
+                  {Object.keys(pagoMap).length===0?<p style={{color:"#bbb",fontSize:12}}>Sin datos</p>:
+                    PAGOS.filter(pg=>pagoMap[pg.id]).map(pg=>(
+                      <div key={pg.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #eee"}}>
+                        <span style={{fontSize:12}}>{pg.icon} {pg.label}</span>
+                        <span style={{fontSize:12,fontWeight:700}}>{fm(pagoMap[pg.id]||0)}</span>
+                      </div>
+                    ))
+                  }
+                  <div style={{marginTop:12}}>
+                    <p style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:8}}>Últimas ventas</p>
+                    {filtered.slice(-5).reverse().map(s=>(
+                      <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #f0f0f0"}}>
+                        <div>
+                          <span style={{fontSize:10,color:"#888"}}>{new Date(s.timestamp).toLocaleDateString("es-AR")} {new Date(s.timestamp).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}</span>
+                          {s.cliente&&<span style={{fontSize:10,color:"#555",marginLeft:6}}>· {s.cliente}</span>}
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700}}>{fm(s.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── PRODUCT CARD ── */
+function ProductCard({p,onSelect,onAdd,wished,onWish}){
+  const [hov,setHov]=useState(false);
+  const st=stockSt(p);
+  const mainPrice=p.oferta&&p.precioOferta?p.precioOferta:(p.precios[0]?.price||0);
+  const basePrice=p.precios[0]?.price||0;
+  const ow=getOwner(p.owner||"compartido");
+  return(
+    <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{background:"#fff",borderRadius:8,overflow:"hidden",
+              border:hov?"1.5px solid #FFE000":"1px solid #e0e0e0",
+              transition:"all .15s",transform:hov?"translateY(-2px)":"none",
+              boxShadow:hov?"0 6px 20px rgba(255,224,0,.2)":"0 1px 4px rgba(0,0,0,.07)",
+              cursor:"pointer",display:"flex",flexDirection:"column"}}>
+      <div onClick={()=>onSelect(p)} style={{position:"relative",background:"#fffbea",height:155,overflow:"hidden"}}>
+        <ProductImage p={p} size={68} height={155}/>
+        {p.oferta&&<span style={{position:"absolute",top:8,left:8,background:"#e22",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:3,zIndex:1}}>OFERTA</span>}
+        <span style={{position:"absolute",bottom:8,right:8,background:ow.bg,color:ow.color,fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:3,zIndex:1}}>{ow.label}</span>
+        <button onClick={e=>{e.stopPropagation();onWish(p.id);}} style={{position:"absolute",top:6,right:6,background:"rgba(255,255,255,.9)",border:"none",borderRadius:"50%",width:26,height:26,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1}}>{wished?"❤️":"🤍"}</button>
+        {st==="poco"&&<span style={{position:"absolute",bottom:8,left:8,background:"#fff3cd",color:"#856404",fontSize:10,fontWeight:600,padding:"2px 6px",borderRadius:3,border:"1px solid #ffc107",zIndex:1}}>¡Solo {p.stock}!</span>}
+        {st==="agotado"&&<span style={{position:"absolute",inset:0,background:"rgba(0,0,0,.35)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:13,zIndex:1}}>Sin stock</span>}
+      </div>
+      <div onClick={()=>onSelect(p)} style={{padding:"10px 12px 6px",flex:1}}>
+        <p style={{margin:"0 0 2px",fontSize:10,color:"#888"}}>Cód: {p.code} · {p.tipo==="litro"?"Por litro":"Por unidad"}</p>
+        <p style={{margin:"0 0 6px",fontSize:12,lineHeight:1.3,fontWeight:600,color:"#1a1a1a",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.name}</p>
+        {p.oferta&&p.precioOferta&&<span style={{fontSize:11,color:"#aaa",textDecoration:"line-through"}}>{fm(basePrice)}</span>}
+        <p style={{margin:"2px 0 0",fontSize:17,fontWeight:800,color:"#1a1a1a"}}>{fm(mainPrice)}</p>
+        <p style={{margin:"2px 0 0",fontSize:11,color:"#666"}}>desde · {p.precios[0]?.qty}</p>
+      </div>
+      <div style={{padding:"8px 12px 12px"}}>
+        {st==="agotado"
+          ?<button style={{width:"100%",background:"#e8e8e8",color:"#aaa",border:"none",padding:"8px",borderRadius:5,fontSize:12,fontWeight:600,cursor:"not-allowed"}}>Sin stock</button>
+          :<button onClick={e=>{e.stopPropagation();onAdd(p);}} style={{width:"100%",background:hov?"#FFE000":"#fffbea",color:"#1a1a1a",border:"1.5px solid #d4bb00",padding:"8px",borderRadius:5,fontSize:12,fontWeight:700,cursor:"pointer",transition:"background .15s"}}>+ Agregar al carrito</button>
+        }
+      </div>
+    </div>
+  );
+}
+
+/* ── PRODUCT MODAL ── */
+function ProductModal({p,onClose,onAdd}){
+  const [selIdx,setSelIdx]=useState(0);
+  const opts=[];
+  if(p.oferta&&p.precioOferta)opts.push({qty:"⚡ Precio oferta",price:p.precioOferta});
+  p.precios.forEach(r=>opts.push(r));
+  const sel=opts[selIdx]||opts[0];
+  const st=stockSt(p);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:12,maxWidth:460,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fffbea"}}>
+          <span style={{fontSize:11,color:"#888",fontWeight:600}}>Cód: {p.code} · {p.tipo==="litro"?"Por litro":"Por unidad"}</span>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#555"}}>✕</button>
+        </div>
+        <div style={{padding:20}}>
+          <div style={{background:"#fffbea",borderRadius:10,height:170,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,overflow:"hidden"}}>
+            <ProductImage p={p} size={90} height={170}/>
+          </div>
+          <h2 style={{fontSize:16,fontWeight:700,marginBottom:10,color:"#1a1a1a"}}>{p.name}</h2>
+          {st==="poco"&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:4,padding:"6px 12px",fontSize:12,color:"#856404",fontWeight:600,marginBottom:8}}>⚠️ ¡Solo quedan {p.stock} en stock!</div>}
+          {st==="agotado"&&<div style={{background:"#f8d7da",border:"1px solid #f5c2c7",borderRadius:4,padding:"6px 12px",fontSize:12,color:"#721c24",fontWeight:600,marginBottom:8}}>❌ Sin stock disponible</div>}
+          <p style={{fontSize:11,color:"#888",marginBottom:7,fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>Elegí la cantidad / presentación:</p>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+            {opts.map((o,i)=>(
+              <button key={i} onClick={()=>setSelIdx(i)}
+                style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",
+                        border:selIdx===i?"2px solid #1a1a1a":"1.5px solid #e0e0e0",
+                        borderRadius:6,background:selIdx===i?"#fffbea":"#fff",cursor:"pointer",
+                        fontSize:13,fontWeight:selIdx===i?700:400}}>
+                <span>{o.qty}</span>
+                <span style={{fontWeight:700}}>{fm(o.price)}</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>{if(st!=="agotado"){onAdd(p,sel);}}} disabled={st==="agotado"}
+            style={{width:"100%",background:st==="agotado"?"#e8e8e8":"#FFE000",color:st==="agotado"?"#aaa":"#1a1a1a",
+                    border:"none",padding:"13px",borderRadius:6,fontSize:14,fontWeight:700,
+                    cursor:st==="agotado"?"not-allowed":"pointer",marginBottom:8}}>
+            {st==="agotado"?"Sin stock disponible":"Agregar al carrito"}
+          </button>
+          <button onClick={onClose} style={{width:"100%",background:"none",color:"#888",border:"1px solid #e0e0e0",padding:"10px",borderRadius:6,fontSize:13,cursor:"pointer"}}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── CART DRAWER ── */
+function CartDrawer({cart,onClose,onRemove,onQtyChange,onCheckout}){
+  const [pago,setPago]=useState("efectivo");
+  const [fecha,setFecha]=useState(new Date().toISOString().split("T")[0]);
+  const pg=PAGOS.find(x=>x.id===pago);
+  const subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const recargo=Math.round(subtotal*(pg?.recargo||0)/100);
+  const total=subtotal+recargo;
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:900,display:"flex"}}>
+      <div onClick={onClose} style={{flex:1,background:"rgba(0,0,0,.45)"}}/>
+      <div style={{width:360,background:"#fff",overflowY:"auto",boxShadow:"-6px 0 30px rgba(0,0,0,.15)",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"16px 18px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fffbea",position:"sticky",top:0,zIndex:1}}>
+          <div>
+            <p style={{margin:0,fontWeight:800,fontSize:15}}>🛒 Mi carrito</p>
+            <p style={{margin:"2px 0 0",fontSize:11,color:"#888"}}>{cart.reduce((s,i)=>s+i.qty,0)} productos</p>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#555"}}>✕</button>
+        </div>
+        <div style={{flex:1,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+          {cart.length===0
+            ?<div style={{textAlign:"center",padding:"50px 20px",color:"#bbb"}}>
+                <div style={{fontSize:40}}>🛒</div>
+                <p style={{marginTop:10,fontSize:13}}>Tu carrito está vacío</p>
+              </div>
+            :cart.map(item=>(
+                <div key={`${item.id}-${item.selectedQty}`} style={{display:"flex",gap:10,padding:"10px",background:"#fafafa",borderRadius:8,border:"1px solid #eee"}}>
+                  <div style={{fontSize:28,width:44,height:44,background:"#fffbea",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+                    {item.imageUrl?<img src={item.imageUrl} style={{width:44,height:44,objectFit:"cover",borderRadius:7}} onError={e=>{e.target.style.display="none";}}/>:item.emoji}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:"0 0 2px",fontSize:12,fontWeight:600,lineHeight:1.3}}>{item.name}</p>
+                    <p style={{margin:"0 0 4px",fontSize:10,color:"#888"}}>{item.selectedQty}</p>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <button onClick={()=>onQtyChange(item,Math.max(1,item.qty-1))} style={{background:"#f0f0f0",border:"none",borderRadius:4,width:22,height:22,cursor:"pointer",fontWeight:700,fontSize:14}}>-</button>
+                      <span style={{fontSize:12,fontWeight:600,minWidth:20,textAlign:"center"}}>{item.qty}</span>
+                      <button onClick={()=>onQtyChange(item,item.qty+1)} style={{background:"#f0f0f0",border:"none",borderRadius:4,width:22,height:22,cursor:"pointer",fontWeight:700,fontSize:14}}>+</button>
+                      <span style={{marginLeft:"auto",fontSize:13,fontWeight:700}}>{fm(item.price*item.qty)}</span>
+                    </div>
+                  </div>
+                  <button onClick={()=>onRemove(item)} style={{background:"none",border:"none",cursor:"pointer",color:"#ccc",fontSize:15,alignSelf:"center"}}>🗑️</button>
+                </div>
+              ))
+          }
+        </div>
+        {cart.length>0&&(
+          <div style={{padding:"12px 16px",borderTop:"1px solid #eee"}}>
+            <p style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase",letterSpacing:.5,marginBottom:5}}>Fecha de retiro</p>
+            <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)}
+              style={{width:"100%",padding:"7px 10px",fontSize:12,border:"1.5px solid #e0e0e0",borderRadius:6,marginBottom:10,outline:"none"}}/>
+            <p style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase",letterSpacing:.5,marginBottom:5}}>Forma de pago</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}}>
+              {PAGOS.map(pg2=>(
+                <button key={pg2.id} onClick={()=>setPago(pg2.id)}
+                  style={{padding:"8px 5px",border:pago===pg2.id?"2px solid #1a1a1a":"1.5px solid #e0e0e0",
+                          borderRadius:6,background:pago===pg2.id?"#FFE000":"#fff",cursor:"pointer",
+                          textAlign:"center",fontSize:11,fontWeight:pago===pg2.id?700:400}}>
+                  <span style={{fontSize:15,display:"block",marginBottom:2}}>{pg2.icon}</span>
+                  {pg2.label}
+                  {pg2.sub&&<span style={{display:"block",fontSize:9,color:"#e22"}}>{pg2.sub}</span>}
+                </button>
+              ))}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
+              <span style={{color:"#666"}}>Subtotal</span><span>{fm(subtotal)}</span>
+            </div>
+            {recargo>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#e22",marginBottom:3}}>
+              <span>Recargo crédito (15%)</span><span>+{fm(recargo)}</span>
+            </div>}
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:15,fontWeight:800,borderTop:"2px solid #FFE000",paddingTop:8,marginTop:5,marginBottom:12}}>
+              <span>Total</span><span>{fm(total)}</span>
+            </div>
+            <button onClick={()=>onCheckout(pago,fecha,total)}
+              style={{width:"100%",background:"#25D366",color:"#fff",border:"none",padding:"13px",borderRadius:6,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:6}}>
+              📲 Pedir por WhatsApp
+            </button>
+            <button onClick={onClose}
+              style={{width:"100%",background:"none",color:"#888",border:"1px solid #e0e0e0",padding:"9px",borderRadius:6,fontSize:12,cursor:"pointer"}}>
+              Seguir comprando
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── APP PRINCIPAL ── */
+function App(){
+  const [products,setProducts]=useState(()=>normalizeProducts(loadLS(LS_PRODUCTS,null)||PRODUCTS_DEFAULT));
+  const [sales,setSales]=useState(()=>loadLS(LS_SALES,[]));
+
+  const [search,setSearch]=useState("");
+  const [cat,setCat]=useState("todos");
+  const [cart,setCart]=useState([]);
+  const [cartOpen,setCartOpen]=useState(false);
+  const [selected,setSelected]=useState(null);
+  const [sortBy,setSortBy]=useState("relevance");
+  const [onlyOferta,setOnlyOferta]=useState(false);
+  const [wishlist,setWishlist]=useState([]);
+  const [toast,setToast]=useState("");
+
+  /* Panel state */
+  const [panel,setPanel]=useState(null); // "admin"|"venta"|"stats"
+  const [pinTarget,setPinTarget]=useState(null); // "admin"|"venta"|"stats"
+  const [authed,setAuthed]=useState(false);
+
+  const showToast=(msg)=>{setToast(msg);setTimeout(()=>setToast(""),2500);};
+
+  const handlePanelBtn=(target)=>{
+    setPinTarget(target);
+  };
+
+  const handlePinAuth=()=>{
+    setAuthed(true);
+    setPanel(pinTarget);
+    setPinTarget(null);
+  };
+
+  const saveProducts=(prods)=>{
+    setProducts(prods);
+    saveLS(LS_PRODUCTS,prods);
+  };
+
+  const saveSale=(sale)=>{
+    const next=[...sales,sale];
+    setSales(next);
+    saveLS(LS_SALES,next);
+  };
+
+  const addToCart=(p,sel)=>{
+    const price=sel?sel.price:(p.oferta&&p.precioOferta?p.precioOferta:p.precios[0]?.price||0);
+    const qty=sel?.qty||p.precios[0]?.qty||"1 unidad";
+    setCart(prev=>{
+      const ex=prev.find(i=>i.id===p.id&&i.selectedQty===qty);
+      if(ex)return prev.map(i=>i.id===p.id&&i.selectedQty===qty?{...i,qty:i.qty+1}:i);
+      return [...prev,{...p,price,selectedQty:qty,qty:1}];
+    });
+    showToast(`"${p.name.slice(0,26)}…" agregado ✓`);
+  };
+
+  const removeFromCart=(item)=>setCart(prev=>prev.filter(i=>!(i.id===item.id&&i.selectedQty===item.selectedQty)));
+  const changeQty=(item,qty)=>setCart(prev=>prev.map(i=>i.id===item.id&&i.selectedQty===item.selectedQty?{...i,qty}:i));
+
+  const filtered=useMemo(()=>{
+    let res=products.filter(p=>{
+      if(p.visible===false) return false;
+      const matchCat=cat==="todos"||p.cat===cat;
+      const matchSearch=p.name.toLowerCase().includes(search.toLowerCase())||p.code.includes(search);
+      const matchOferta=!onlyOferta||p.oferta;
+      return matchCat&&matchSearch&&matchOferta;
+    });
+    if(sortBy==="price_asc") res=[...res].sort((a,b)=>(a.precios[0]?.price||0)-(b.precios[0]?.price||0));
+    if(sortBy==="price_desc")res=[...res].sort((a,b)=>(b.precios[0]?.price||0)-(a.precios[0]?.price||0));
+    if(sortBy==="oferta")    res=[...res].sort((a,b)=>(b.oferta?1:0)-(a.oferta?1:0));
+    return res;
+  },[search,cat,sortBy,onlyOferta,products]);
+
+  const cartCount=cart.reduce((s,i)=>s+i.qty,0);
+  const ofertaCount=products.filter(p=>p.oferta).length;
+
+  const handleCheckout=(pago,fecha,total)=>{
+    const pg=PAGOS.find(x=>x.id===pago);
+    const lines=cart.map(i=>`• ${i.name} (${i.selectedQty}) x${i.qty} = ${fm(i.price*i.qty)}`).join("\n");
+    const msg=`🛒 *Pedido Conti Hogar*\n\n${lines}\n\n💳 *Pago:* ${pg?.label||pago}\n💰 *Total:* ${fm(total)}\n📅 *Retiro:* ${fecha}\n\n¡Gracias! 🙌`;
+    window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,"_blank");
+  };
+
+  return(
+    <div style={{background:"#f5f5f5",minHeight:"100vh"}}>
+      <Toast msg={toast}/>
+
+      {/* ── HEADER ── */}
+      <header style={{background:"#FFE000",boxShadow:"0 2px 8px rgba(0,0,0,.12)",position:"sticky",top:0,zIndex:100}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"10px 14px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <div onClick={()=>{setSearch("");setCat("todos");setOnlyOferta(false);}} style={{cursor:"pointer",minWidth:130}}>
+            <div style={{fontSize:17,fontWeight:900,color:"#1a1a1a",letterSpacing:-.5,lineHeight:1.1}}>CONTI HOGAR</div>
+            <div style={{fontSize:9,color:"#555",letterSpacing:.1,textTransform:"uppercase"}}>El toque mágico de la limpieza</div>
+          </div>
+          <div style={{flex:1,display:"flex",maxWidth:540}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="Buscar por nombre o código de producto…"
+              style={{flex:1,padding:"9px 13px",border:"none",borderRadius:"4px 0 0 4px",fontSize:13,outline:"none",boxShadow:"inset 0 0 0 1.5px #d4bb00"}}/>
+            <button onClick={()=>setSearch("")}
+              style={{background:"#fff",border:"none",borderRadius:"0 4px 4px 0",padding:"0 14px",cursor:"pointer",fontSize:16,borderLeft:"1px solid #d4bb00"}}>🔍</button>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:"auto"}}>
+            <a href="https://www.instagram.com/conti.hogar" target="_blank"
+              style={{fontSize:12,color:"#333",fontWeight:500}}>📷 @conti.hogar</a>
+            <a href={`https://wa.me/${WA}`} target="_blank"
+              style={{fontSize:12,color:"#1a7a3c",fontWeight:600}}>💬 WhatsApp</a>
+            <button onClick={()=>setCartOpen(true)}
+              style={{background:"none",border:"none",cursor:"pointer",position:"relative",fontSize:22,lineHeight:1}}>
+              🛒
+              {cartCount>0&&<span style={{position:"absolute",top:-6,right:-8,background:"#1a1a1a",color:"#FFE000",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{cartCount}</span>}
+            </button>
+            {/* ── BOTONES INTERNOS ── */}
+            <div style={{display:"flex",gap:2,borderLeft:"1.5px solid rgba(0,0,0,.15)",paddingLeft:8,marginLeft:4}}>
+              <button className="admin-btn" onClick={()=>handlePanelBtn("admin")} title="Administración — Editar productos">
+                ⚙️
+              </button>
+              <button className="admin-btn" onClick={()=>handlePanelBtn("venta")} title="Registrar Venta Interna">
+                🧾
+              </button>
+              <button className="admin-btn" onClick={()=>handlePanelBtn("stats")} title="Estadísticas de Ventas">
+                📊
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* Categorías */}
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"0 14px 8px",display:"flex",gap:2,overflowX:"auto"}}>
+          {CATS.map(c=>(
+            <button key={c.id} onClick={()=>setCat(c.id)}
+              style={{background:cat===c.id?"rgba(0,0,0,.1)":"none",border:"none",padding:"5px 10px",
+                      borderRadius:4,cursor:"pointer",fontSize:12,fontWeight:cat===c.id?700:400,
+                      color:"#1a1a1a",whiteSpace:"nowrap"}}>
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <main style={{maxWidth:1280,margin:"0 auto",padding:14}}>
+        {/* ── BANNER ── */}
+        <div style={{borderRadius:10,background:"#1a1a1a",marginBottom:14,padding:"20px 30px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",overflow:"hidden"}}>
+          <div style={{zIndex:1}}>
+            <span style={{display:"inline-block",background:"#FFE000",color:"#1a1a1a",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:999,marginBottom:8,textTransform:"uppercase",letterSpacing:.7}}>
+              ⚡ {ofertaCount} Ofertas activas
+            </span>
+            <p style={{margin:0,fontSize:24,fontWeight:900,color:"#fff",lineHeight:1.1}}>Limpieza a tu medida</p>
+            <p style={{margin:"5px 0 12px",fontSize:12,color:"#aaa"}}>Productos de calidad · Precios por cantidad · Entrega a domicilio</p>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <button onClick={()=>setOnlyOferta(true)}
+                style={{background:"#FFE000",color:"#1a1a1a",border:"none",padding:"8px 18px",borderRadius:4,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                Ver todas las ofertas
+              </button>
+              <a href={`https://wa.me/${WA}`} target="_blank"
+                style={{background:"#25D366",color:"#fff",padding:"8px 18px",borderRadius:4,fontWeight:700,fontSize:12,display:"flex",alignItems:"center",gap:4}}>
+                💬 Consultanos
+              </a>
+            </div>
+          </div>
+          <div style={{fontSize:110,opacity:.07,position:"absolute",right:20,top:"50%",transform:"translateY(-50%)"}}>🧴</div>
+        </div>
+
+        {/* ── FILTROS ── */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"8px 12px",background:"#fff",borderRadius:8,border:"1px solid #eee",flexWrap:"wrap"}}>
+          <span style={{fontSize:13,color:"#555",fontWeight:500}}>{filtered.length} resultado{filtered.length!==1?"s":""}</span>
+          <div style={{width:1,height:18,background:"#eee"}}/>
+          <label style={{display:"flex",alignItems:"center",gap:5,fontSize:12,cursor:"pointer"}}>
+            <input type="checkbox" checked={onlyOferta} onChange={e=>setOnlyOferta(e.target.checked)}/>
+            Solo ofertas ⚡
+          </label>
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:12,color:"#666"}}>Ordenar:</span>
+            <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+              style={{padding:"5px 9px",border:"1px solid #ddd",borderRadius:4,fontSize:12,background:"#fff",cursor:"pointer",outline:"none"}}>
+              <option value="relevance">Relevancia</option>
+              <option value="price_asc">Menor precio</option>
+              <option value="price_desc">Mayor precio</option>
+              <option value="oferta">Ofertas primero</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ── GRILLA ── */}
+        {filtered.length===0
+          ?<div style={{textAlign:"center",padding:"60px 20px",color:"#aaa"}}>
+              <div style={{fontSize:48}}>🔍</div>
+              <p style={{fontSize:15,marginTop:12,color:"#666"}}>No encontramos resultados para "<b>{search||"tu búsqueda"}</b>"</p>
+              <button onClick={()=>{setSearch("");setCat("todos");setOnlyOferta(false);}}
+                style={{marginTop:14,padding:"9px 24px",background:"#FFE000",color:"#1a1a1a",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700,fontSize:13}}>
+                Ver todos los productos
+              </button>
+            </div>
+          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))",gap:12}}>
+              {filtered.map(p=>(
+                <ProductCard key={p.id} p={p}
+                  onSelect={setSelected}
+                  onAdd={x=>addToCart(x,null)}
+                  wished={wishlist.includes(p.id)}
+                  onWish={id=>setWishlist(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id])}/>
+              ))}
+            </div>
+        }
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer style={{background:"#1a1a1a",marginTop:36,padding:"28px 16px"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:20,marginBottom:20}}>
+          <div>
+            <div style={{fontSize:15,fontWeight:900,color:"#FFE000",letterSpacing:-.5,marginBottom:4}}>CONTI HOGAR</div>
+            <div style={{fontSize:11,color:"#888",lineHeight:1.6}}>El toque mágico de la limpieza.<br/>Productos de calidad al mejor precio.</div>
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:"#FFE000",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Contacto</div>
+            <a href={`https://wa.me/${WA}`} target="_blank" style={{display:"block",fontSize:12,color:"#25D366",marginBottom:5}}>💬 WhatsApp: +54 343 5188348</a>
+            <a href="https://www.instagram.com/conti.hogar" target="_blank" style={{display:"block",fontSize:12,color:"#aaa"}}>📷 Instagram: @conti.hogar</a>
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:"#FFE000",textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>Pagos aceptados</div>
+            {PAGOS.map(p=><div key={p.id} style={{fontSize:12,color:"#888",marginBottom:4}}>{p.icon} {p.label}{p.sub?` ${p.sub}`:""}</div>)}
+          </div>
+        </div>
+        <div style={{maxWidth:1280,margin:"0 auto",paddingTop:16,borderTop:"1px solid #333",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <span style={{fontSize:11,color:"#555"}}>© 2025 Conti Hogar · Todos los derechos reservados</span>
+          <span style={{fontSize:11,color:"#555"}}>Hecho con ❤️ en Argentina</span>
+        </div>
+      </footer>
+
+      {/* ── MODALES ── */}
+      {cartOpen&&<CartDrawer cart={cart} onClose={()=>setCartOpen(false)} onRemove={removeFromCart} onQtyChange={changeQty} onCheckout={(p,f,t)=>{handleCheckout(p,f,t);}}/>}
+      {selected&&<ProductModal p={selected} onClose={()=>setSelected(null)} onAdd={(p,sel)=>{addToCart(p,sel);setSelected(null);}}/>}
+      {pinTarget&&<PinGate title={pinTarget==="admin"?"Panel de Administración":pinTarget==="venta"?"Registrar Venta":"Ver Estadísticas"} onAuth={handlePinAuth} onClose={()=>setPinTarget(null)}/>}
+      {panel==="admin"&&<AdminPanel products={products} onClose={()=>setPanel(null)} onSave={saveProducts}/>}
+      {panel==="venta"&&<VentaInterna products={products} onClose={()=>setPanel(null)} onSave={saveSale}/>}
+      {panel==="stats"&&<EstadisticasPanel sales={sales} onClose={()=>setPanel(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
